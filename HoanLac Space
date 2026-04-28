@@ -1,0 +1,348 @@
+# 📱 ChatApp iOS — Kế Hoạch Hoàn Chỉnh
+
+> **Stack:** React Native + Expo + Firebase  
+> **Test:** EAS Build + TestFlight (miễn phí, không cần Mac)  
+> **Tính năng nổi bật:** Chat 1-1, Nhóm, Real-time, **Chia sẻ từ TikTok/Facebook/Instagram**
+
+---
+
+## 1. Cây Chức Năng (Feature Tree)
+
+```mermaid
+graph TD
+    APP["📱 ChatApp"]
+
+    APP --> AUTH["🔐 Xác Thực"]
+    APP --> HOME["🏠 Trang Chủ"]
+    APP --> DM["💬 Chat 1-1"]
+    APP --> GRP["👥 Chat Nhóm"]
+    APP --> SHARE["🔗 Chia Sẻ Mạng Xã Hội"]
+    APP --> NOTIFY["🔔 Thông Báo"]
+    APP --> SETTINGS["⚙️ Cài Đặt"]
+
+    AUTH --> A1["Đăng ký\nEmail + Password"]
+    AUTH --> A2["Đăng nhập"]
+    AUTH --> A3["Quên mật khẩu"]
+    AUTH --> A4["Đăng xuất"]
+
+    HOME --> H1["Danh sách cuộc trò chuyện"]
+    HOME --> H2["Tìm kiếm người dùng"]
+    HOME --> H3["Badge chưa đọc 🔴"]
+    HOME --> H4["Trạng thái online 🟢"]
+    HOME --> H5["Tạo chat mới"]
+    H5 --> H5A["→ Chat 1-1"]
+    H5 --> H5B["→ Tạo nhóm"]
+
+    DM --> D1["Gửi tin nhắn text"]
+    DM --> D2["Emoji 😊"]
+    DM --> D3["Real-time < 1 giây"]
+    DM --> D4["Đã gửi ✓ / Đã đọc ✓✓"]
+    DM --> D5["Timestamp"]
+    DM --> D6["Xóa tin nhắn"]
+    DM --> D7["Link preview card"]
+
+    GRP --> G1["Tạo nhóm & đặt tên"]
+    GRP --> G2["Thêm / xóa thành viên"]
+    GRP --> G3["Hiển thị tên người gửi"]
+    GRP --> G4["Admin nhóm"]
+    GRP --> G5["Rời nhóm"]
+
+    SHARE --> SH1["iOS Share Sheet\nHiện trong danh sách Share"]
+    SHARE --> SH2["Nhận link từ\nTikTok / Facebook / Instagram / YouTube"]
+    SHARE --> SH3["Chọn người / nhóm\nđể gửi nhanh"]
+    SHARE --> SH4["Link Preview Card\nThumbnail + Tiêu đề"]
+    SHARE --> SH5["Bấm → Mở app gốc"]
+
+    NOTIFY --> N1["Push notification\ntin nhắn mới"]
+    NOTIFY --> N2["Badge icon app"]
+    NOTIFY --> N3["Âm thanh / rung"]
+
+    SETTINGS --> S1["Hồ sơ cá nhân"]
+    SETTINGS --> S2["Đổi tên hiển thị"]
+    SETTINGS --> S3["Ảnh đại diện"]
+    SETTINGS --> S4["Đổi mật khẩu"]
+    SETTINGS --> S5["Dark / Light mode"]
+    SETTINGS --> S6["Chặn người dùng"]
+
+    style APP fill:#0a0a0a,color:#c9a96e,stroke:#c9a96e,stroke-width:3px
+    style AUTH fill:#111,color:#fff,stroke:#444
+    style HOME fill:#111,color:#fff,stroke:#444
+    style DM fill:#111,color:#fff,stroke:#444
+    style GRP fill:#111,color:#fff,stroke:#444
+    style SHARE fill:#1a0a00,color:#c9a96e,stroke:#c9a96e,stroke-width:2px
+    style NOTIFY fill:#111,color:#fff,stroke:#444
+    style SETTINGS fill:#111,color:#fff,stroke:#444
+```
+
+---
+
+## 2. Luồng Màn Hình (Screen Flow)
+
+```mermaid
+graph LR
+    SPLASH["💫 Splash"]
+    LOGIN["🔐 Login"]
+    REG["📝 Register"]
+    HOME["🏠 Home\nDanh sách chat"]
+    SEARCH["🔍 Tìm người dùng"]
+    CHAT["💬 Chat 1-1"]
+    NEWGRP["➕ Tạo nhóm"]
+    GRPCHAT["👥 Chat nhóm"]
+    SHAREIN["🔗 Share Receiver\nNhận link từ TikTok/FB/IG"]
+    PICKCONV["📋 Chọn conversation\nđể gửi"]
+    PROFILE["👤 Profile"]
+    SETTINGS["⚙️ Settings"]
+
+    SPLASH -->|"Chưa login"| LOGIN
+    SPLASH -->|"Đã login"| HOME
+    LOGIN <--> REG
+    LOGIN --> HOME
+    HOME --> CHAT
+    HOME --> GRPCHAT
+    HOME --> SEARCH
+    HOME --> PROFILE
+    SEARCH --> CHAT
+    SEARCH --> NEWGRP
+    NEWGRP --> GRPCHAT
+    PROFILE --> SETTINGS
+
+    TIKTOK["TikTok / FB / IG\nBấm Share ⬆️"] --> SHAREIN
+    SHAREIN --> PICKCONV
+    PICKCONV --> CHAT
+    PICKCONV --> GRPCHAT
+```
+
+---
+
+## 3. Tính Năng Chia Sẻ (Share Extension) — Chi Tiết
+
+> [!IMPORTANT]
+> Đây là tính năng **nổi bật nhất** của app. Khi bạn đang xem TikTok/Facebook/Instagram và bấm Share, app của bạn hiện ra trong danh sách — bấm vào → chọn người nhận → link được gửi tức thì.
+
+### Cách hoạt động:
+
+```
+[TikTok] Bấm Share ⬆️
+    ↓
+[iOS Share Sheet] Hiện icon "ChatApp"
+    ↓
+[ChatApp mở] Màn hình "Gửi tới..."
+    ↓
+[Danh sách] Bạn bè / Nhóm gần đây
+    ↓
+[Chọn] → Link được gửi kèm preview card
+    ↓
+[Người nhận] Thấy: 🖼️ Thumbnail + Tiêu đề + Link → bấm mở TikTok
+```
+
+### Hỗ trợ các platform:
+
+| Platform | Link Preview | Thumbnail | Auto detect |
+|---|---|---|---|
+| TikTok | ✅ | ✅ | ✅ |
+| Facebook | ✅ | ✅ | ✅ |
+| Instagram | ✅ | ✅ | ✅ |
+| YouTube | ✅ | ✅ | ✅ |
+| Twitter/X | ✅ | ✅ | ✅ |
+| Bất kỳ URL | ✅ | ⚠️ Tuỳ | ✅ |
+
+---
+
+## 4. Tech Stack
+
+| Layer | Công nghệ | Lý do |
+|---|---|---|
+| Framework | **React Native 0.73** | Cross-platform, hệ sinh thái lớn |
+| Dev Platform | **Expo SDK 50** | Build trên Windows, không cần Mac |
+| Build | **EAS Build** (free tier) | Cần cho Share Extension |
+| Auth | **Firebase Authentication** | Email/password, miễn phí |
+| Database | **Firebase Realtime DB** | Real-time <1s, free 1GB |
+| Storage | **Firebase Storage** | Ảnh đại diện, free 5GB |
+| Navigation | **React Navigation v6** | Chuẩn công nghiệp |
+| Share Intent | **expo-share-intent** | Nhận link từ iOS Share Sheet |
+| Link Preview | **link-preview-js** | Parse OG tags tự động |
+| Notifications | **expo-notifications** | Push notification iOS |
+| Icons | **@expo/vector-icons** | Hàng nghìn icon miễn phí |
+| State | **React Context + Hooks** | Đơn giản, không cần Redux |
+
+---
+
+## 5. Cấu Trúc Thư Mục
+
+```
+d:\Khánh\Code\ChatApp\
+│
+├── 📄 App.js                        ← Entry, Navigation root
+├── 📄 app.json                      ← Expo config + Bundle ID
+├── 📄 eas.json                      ← EAS Build config
+├── 📄 firebase.js                   ← Firebase init
+├── 📄 package.json
+│
+├── 📁 src/
+│   │
+│   ├── 📁 screens/
+│   │   ├── SplashScreen.js          ← Kiểm tra login state
+│   │   ├── LoginScreen.js           ← Form đăng nhập
+│   │   ├── RegisterScreen.js        ← Form đăng ký
+│   │   ├── HomeScreen.js            ← Danh sách conversations
+│   │   ├── ChatScreen.js            ← Chat 1-1
+│   │   ├── GroupChatScreen.js       ← Chat nhóm
+│   │   ├── NewChatScreen.js         ← Tìm user / tạo nhóm
+│   │   ├── ShareReceiverScreen.js   ← ⭐ Nhận link từ TikTok/FB/IG
+│   │   ├── PickConversationScreen.js← ⭐ Chọn người nhận khi share
+│   │   ├── ProfileScreen.js         ← Hồ sơ cá nhân
+│   │   └── SettingsScreen.js        ← Cài đặt
+│   │
+│   ├── 📁 components/
+│   │   ├── MessageBubble.js         ← Bong bóng tin nhắn
+│   │   ├── LinkPreviewCard.js       ← ⭐ Card preview link TikTok/FB
+│   │   ├── ConversationItem.js      ← 1 dòng danh sách chat
+│   │   ├── Avatar.js                ← Ảnh đại diện
+│   │   ├── OnlineDot.js             ← Chấm xanh online
+│   │   ├── EmojiPicker.js           ← Bộ emoji
+│   │   └── EmptyState.js            ← UI khi chưa có tin
+│   │
+│   ├── 📁 context/
+│   │   ├── AuthContext.js           ← Global user state
+│   │   └── ThemeContext.js          ← Dark/Light mode
+│   │
+│   └── 📁 utils/
+│       ├── auth.js                  ← login/register/logout
+│       ├── db.js                    ← Firebase DB helpers
+│       ├── storage.js               ← Upload ảnh
+│       ├── linkPreview.js           ← ⭐ Fetch OG tags từ URL
+│       └── formatTime.js            ← Format timestamp
+```
+
+---
+
+## 6. Database Schema (Firebase)
+
+```
+root/
+│
+├── users/{userId}/
+│   ├── uid, displayName, email
+│   ├── avatarUrl
+│   ├── online: true/false
+│   └── lastSeen: timestamp
+│
+├── conversations/{convId}/
+│   ├── type: "direct" | "group"
+│   ├── name: "Nhóm A"
+│   ├── members/{userId}: true
+│   └── lastMessage/
+│       ├── text, senderId, timestamp
+│       └── type: "text" | "link"   ← ⭐ phân biệt link share
+│
+├── messages/{convId}/{msgId}/
+│   ├── type: "text" | "link"        ← ⭐
+│   ├── text: "Xem video này nè!"
+│   ├── url: "https://tiktok.com/..."  ← ⭐ link share
+│   ├── preview/                     ← ⭐ OG data
+│   │   ├── title: "Video hay lắm"
+│   │   ├── description: "..."
+│   │   ├── image: "https://..."
+│   │   └── siteName: "TikTok"
+│   ├── senderId, senderName
+│   ├── timestamp
+│   └── readBy/{userId}: true
+│
+└── userConversations/{userId}/{convId}/
+    ├── unreadCount: 3
+    └── lastSeen: timestamp
+```
+
+---
+
+## 7. Kế Hoạch Phát Triển (5 Giai Đoạn)
+
+### Giai đoạn 1 — Setup & Môi Trường ⏱️ ~1 ngày
+- [ ] Cài **Node.js LTS** → [nodejs.org](https://nodejs.org)
+- [ ] Cài Expo CLI: `npm install -g expo-cli eas-cli`
+- [ ] Tạo project: `npx create-expo-app ChatApp`
+- [ ] Tạo **Firebase project** → bật Auth + Realtime DB + Storage
+- [ ] Cài tất cả dependencies
+- [ ] Config `firebase.js` với key thật
+
+### Giai đoạn 2 — Auth & Home ⏱️ ~1 ngày
+- [ ] Splash Screen (auto redirect)
+- [ ] Login Screen + Register Screen
+- [ ] AuthContext (global state)
+- [ ] Home Screen — danh sách conversations
+- [ ] Avatar component + Online dot
+
+### Giai đoạn 3 — Chat 1-1 & Nhóm ⏱️ ~2 ngày
+- [ ] New Chat Screen (tìm user)
+- [ ] Chat Screen — gửi/nhận real-time
+- [ ] MessageBubble (sent/received style)
+- [ ] Dấu đã gửi ✓ / đã đọc ✓✓
+- [ ] Tạo nhóm — chọn nhiều người
+- [ ] Group Chat Screen — hiển thị tên người gửi
+
+### Giai đoạn 4 — Share Extension ⏱️ ~2 ngày ⭐
+- [ ] Cài `expo-share-intent`
+- [ ] Config `app.json` — đăng ký Share Extension
+- [ ] ShareReceiverScreen — nhận URL từ iOS
+- [ ] PickConversationScreen — chọn người nhận
+- [ ] LinkPreviewCard — fetch OG tags, hiện thumbnail
+- [ ] EAS Build — build `.ipa` file thật
+- [ ] Cài lên iPhone qua Expo Dev Client / TestFlight
+
+### Giai đoạn 5 — Polish ⏱️ ~1 ngày
+- [ ] Push Notifications (expo-notifications)
+- [ ] Emoji Picker
+- [ ] Dark Mode
+- [ ] Upload ảnh đại diện
+- [ ] Chặn người dùng
+- [ ] Test 2 iPhone cùng lúc
+
+---
+
+## 8. Checklist Chuẩn Bị (Bạn Cần Làm)
+
+- [ ] **Cài Node.js LTS** → [nodejs.org](https://nodejs.org)
+- [ ] **Tạo Firebase project** → [console.firebase.google.com](https://console.firebase.google.com)
+  - Bật **Email/Password Authentication**
+  - Tạo **Realtime Database** (test mode)
+  - Tạo **Storage bucket**
+  - Copy **firebaseConfig** → gửi cho tôi hoặc điền vào `firebase.js`
+- [ ] **Cài Expo Go** trên iPhone (App Store, miễn phí) → dùng test giai đoạn 1-3
+- [ ] **Đặt tên app** (VD: "NhắnTin", "QuickChat"...)
+- [ ] **Tạo tài khoản Expo** → [expo.dev](https://expo.dev) → dùng cho EAS Build (miễn phí)
+
+---
+
+## 9. Verification Plan
+
+| # | Test Case | Kết quả mong đợi |
+|---|---|---|
+| 1 | Đăng ký tài khoản mới | Vào được Home, thấy danh sách trống |
+| 2 | Đăng nhập sai password | Hiện thông báo lỗi rõ ràng |
+| 3 | Gửi tin 1-1 | Tin hiện ngay bên kia (<1 giây) |
+| 4 | Tạo nhóm 3 người | Cả 3 thấy tin nhắn |
+| 5 | **Bấm Share trên TikTok** | App hiện trong Share Sheet |
+| 6 | **Chọn ChatApp từ TikTok** | Mở màn hình chọn người nhận |
+| 7 | **Gửi link TikTok vào chat** | Hiện preview card có thumbnail |
+| 8 | Bấm vào link preview | Mở TikTok app |
+| 9 | 2 điện thoại chat cùng lúc | Real-time đồng bộ hoàn hảo |
+| 10 | Tắt mạng, gửi tin | Hiện trạng thái chờ/lỗi |
+
+---
+
+## 10. Open Questions
+
+> [!IMPORTANT]
+> **Tên app là gì?** — Cần điền vào `app.json` và Bundle ID
+
+> [!IMPORTANT]
+> **Đã tạo Firebase project chưa?** — Bước này cần làm trước khi code auth/database
+
+> [!NOTE]
+> **Muốn đăng nhập Google không?** — Hoặc chỉ Email/Password là đủ?
+
+> [!NOTE]
+> **Muốn gửi ảnh/file trong chat không?** — Nếu có sẽ dùng Firebase Storage
+
+> [!NOTE]
+> **Dark theme hay Light theme mặc định?**
